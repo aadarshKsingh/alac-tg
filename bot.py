@@ -14,10 +14,17 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-
+downloads_dir = "downloads"
 
 app = Client("alac", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
+# Check if the directory exists
+if not os.path.exists(downloads_dir):
+    # If the directory doesn't exist, create it
+    os.makedirs(downloads_dir)
+    print(f"Directory '{downloads_dir}' created.")
+else:
+    print(f"Directory '{downloads_dir}' already exists.")
 
 def format_text_for_telegraph(text):
     # Split the text into lines (for better control over formatting)
