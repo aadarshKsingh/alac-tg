@@ -4,7 +4,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 from dotenv import load_dotenv
 from telegraph import Telegraph
-
+from pyrogram.errors import FloodWait
 
 load_dotenv()
 
@@ -128,9 +128,14 @@ async def send_files(_, message: Message):
                 print(file_path)
                 await app.send_audio(int(CHANNEL_ID), file_path)
                 print(f"Sent: {file_name}")
-            except Exception as e:
-                print(f"Error sending file {file_name}: {str(e)}")
-                await message.reply(f"Failed to send file {file_name}: {str(e)}")
+            except FloodWait as e:
+                print(f"FloodWait triggered. sleeping for {e.x} seconds")
+                await sleep(e.x)
+                try:
+                    await app.send_audio(int(CHANNEL_ID), file_path)
+                except Exception as e:
+                    print(f"Error sending file {file_name}: {str(e)}")
+                    await message.reply(f"Failed to send file {file_name}: {str(e)}")
     
     # After sending all files, clear the downloads directory
     for file_name in files:
