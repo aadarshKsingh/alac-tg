@@ -14,17 +14,10 @@ CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-downloads_dir = "downloads"
+
 
 app = Client("alac", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# Check if the directory exists
-if not os.path.exists(downloads_dir):
-    # If the directory doesn't exist, create it
-    os.makedirs(downloads_dir)
-    print(f"Directory '{downloads_dir}' created.")
-else:
-    print(f"Directory '{downloads_dir}' already exists.")
 
 def format_text_for_telegraph(text):
     # Split the text into lines (for better control over formatting)
@@ -113,16 +106,20 @@ async def send_files(_, message: Message):
         await message.reply("No files found to send.")
         return
     
-    # Send each file in the directory to the channel
     for file_name in files:
         file_path = os.path.join("downloads", file_name)
 
         if os.path.isfile(file_path):
+            # Check if the file extension is either .jpg or .png
+            if file_name.lower().endswith(('.jpg', '.png')):
+                print(f"Skipping {file_name} as it is a .jpg or .png file")
+                continue  # Skip this iteration
+
             try:
                 # Send the file to the provided channel
                 print(f"Attempting to send: {file_name}")  # Debugging line
                 print(file_path)
-                await app.send_document(int(CHANNEL_ID), file_path)
+                await app.send_audio(int(CHANNEL_ID), file_path)
                 print(f"Sent: {file_name}")
             except Exception as e:
                 print(f"Error sending file {file_name}: {str(e)}")
@@ -199,7 +196,7 @@ async def playlist(_, message: Message):
         await message.reply("Please provide a URL after the command.")
         return
     url = message.text.split(" ")[1]
-    command = f"go run main.go --playlist {url}"
+    command = f"go run main.go {url}"
     await message.reply("Downloading, Please wait...")
     # Run the go command synchronously and wait for it to complete
     try:
