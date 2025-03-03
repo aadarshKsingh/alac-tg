@@ -1,3 +1,4 @@
+
 # ALAC TG
 
 F Apple Music coz why not
@@ -76,6 +77,9 @@ CHANNEL_ID=""
 BOT_TOKEN=""
 API_ID=""
 API_HASH=""
+OWNER_ID=""
+WRAPPER_SERVICE=""
+ALAC_SERVICE=""
 ```
 
 ### 6. Edit Config File
@@ -99,6 +103,12 @@ Once all dependencies are installed and configurations are set, you can run the 
 - `/info`: Show information about the bot
 - `/atmos <atmos_url>`: Process the atmos URL
 - `/aac <aac_url>`: Process the AAC URL
+- `/wrapper` - Return wrapper systemd service logs
+- `/logs` - Returns bot's systemd service logs
+- `/cancel <task_id>`- Cancel a task with id
+- `/cancelall` - Cancel all task
+- `/status` - Show current queue
+- `/restart` - Restart services [ADMIN ONLY]
 
 ## Troubleshooting
 
