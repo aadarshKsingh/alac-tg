@@ -20,7 +20,7 @@ downloads_dir = "downloads"
 OWNER_ID = int(os.getenv("OWNER_ID"))
 WRAPPER_SERVICE = os.getenv("WRAPPER_SERVICE")
 ALAC_SERVICE = os.getenv("ALAC_SERVICE")
-MAX_LIMIT = os.getenv("MAX_LIMIT")
+MAX_LIMIT = int(os.getenv("MAX_LIMIT"))
 app = Client("alac", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # Create a queue for downloads
