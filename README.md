@@ -20,10 +20,10 @@ This is a Telegram bot created with an unhealthy amount of sleep deprivation and
 
 ### 1. Clone the Repositories
 
-Clone the original [Apple Music Downloader](https://github.com/zhaarey/apple-music-downloader) and [Wrapper](https://github.com/zhaarey/wrapper) repositories:
+Clone the original [Apple Music Downloader](https://github.com/aadarshKsingh/apple-music-downloader) and [Wrapper](https://github.com/zhaarey/wrapper) repositories:
 
 ```bash
-git clone https://github.com/zhaarey/apple-music-downloader.git
+git clone https://github.com/aadarshKsingh/apple-music-downloader.git
 git clone https://github.com/zhaarey/wrapper.git
 ```
 
