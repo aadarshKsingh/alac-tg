@@ -80,6 +80,7 @@ API_HASH=""
 OWNER_ID=""
 WRAPPER_SERVICE=""
 ALAC_SERVICE=""
+MAX_LIMIT=""
 ```
 
 ### 6. Edit Config File
