@@ -70,16 +70,27 @@ async def process_queue():
             task_status[task_id] = "Completed"
             del task_status[task_id]
             # After the go command finishes, proceed to send the files or notify user
-            await message.reply(f"Task by [{message.from_user.first_name}](tg://user?id={message.from_user.id}): Download completed!")
+            bot_reply = await message.reply(f"Task by [{message.from_user.first_name}](tg://user?id={message.from_user.id}): Download completed!")
+            await asyncio.sleep(10)
+            await message.delete()
+            await bot_reply.delete()
 
         except subprocess.CalledProcessError as e:
             # If the go command fails, notify the user with an error message
             task_status[task_id] = f"Failed: {e.stderr}"
-            await message.reply(f"Task {task_id}: Error running the command: {e.stderr}")
+            bot_reply = await message.reply(f"Task {task_id}: Error running the command: {e.stderr}")
+            await asyncio.sleep(60)
+            await message.delete()
+            await bot_reply.delete()
+
         except Exception as e:
             # Handle unexpected errors
             task_status[task_id] = f"Failed: {str(e)}"
-            await message.reply(f"Task {task_id}: Unexpected error: {str(e)}")
+            bot_reply = await message.reply(f"Task {task_id}: Unexpected error: {str(e)}")
+            await asyncio.sleep(60)
+            await message.delete()
+            await bot_reply.delete()
+
         finally:
             active_processes.pop(task_id, None)
             command_queue.task_done()
@@ -142,7 +153,10 @@ async def start(_, message: Message):
     if message.chat.id != GROUP_ID:
         await message.reply("Unauthorized")
         return
-    await message.reply("Helloooooo Bachhooooooooo! Use /help to see available commands.")
+    bot_reply = await message.reply("Helloooooo Bachhooooooooo! Use /help to see available commands.")
+    await asyncio.sleep(10)
+    await message.delete()
+    await bot_reply.delete()
 
 # Command to show help
 @app.on_message(filters.command("help"))
@@ -160,14 +174,18 @@ async def help(_, message: Message):
         "/info <url> - Show information\n"
         "/atmos <url> - Process the atmos URL\n"
         "/aac <url> - Process the AAC URL\n"
-        "wrapper - Return wrapper systemd service logs\n"
+        "/wrapper - Return wrapper systemd service logs\n"
         "/logs - Returns bot's systemd service logs\n"
         "/cancel - Cancel a task with id\n"
         "/cancelall - Cancel all task\n"
         "/status - Show current queue\n"
         "/restart - Restart services [ADMIN ONLY]\n"
     )
-    await message.reply(help_text)
+    bot_reply = await message.reply(help_text)
+    await asyncio.sleep(60)
+    await message.delete()
+    await bot_reply.delete()
+    
 
 # Function to handle sending to the channel
 async def send_files(_, message: Message):
@@ -180,7 +198,10 @@ async def send_files(_, message: Message):
     print("Files in downloads directory:", files)  # Debugging line
 
     if not files:
-        await message.reply("No files found to send.")
+        bot_reply = await message.reply("No files found to send.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     
     for file_name in files:
@@ -255,7 +276,10 @@ async def send_files(_, message: Message):
                         await app.send_document(int(CHANNEL_ID), file_path)
                     except Exception as e:
                         print(f"Error sending file {file_name}: {str(e)}")
-                        await message.reply(f"Failed to send file {file_name}: {str(e)}")
+                        bot_reply = await message.reply(f"Failed to send file {file_name}: {str(e)}")
+                        await asyncio.sleep(60)
+                        await message.delete()
+                        await bot_reply.delete()
 
     # After sending all files, clear the downloads directory
     for file_name in files:
@@ -267,20 +291,32 @@ async def send_files(_, message: Message):
             except Exception as e:
                 print(f"Error deleting file {file_name}: {str(e)}")
 
-    await message.reply("All files sent and downloads directory cleared.")
-
+    bot_reply = await message.reply("All files sent and downloads directory cleared.")
+    await asyncio.sleep(10)
+    await message.delete()
+    await bot_reply.delete()
+    
 # Command to process song URL
 @app.on_message(filters.command("song"))
 async def song(_, message: Message):
     if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+        bot_reply = await message.reply("Unauthorized")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     
     if len(message.text.split(" ")) < 2:
-        await message.reply("Please provide a URL after the command.")
+        bot_reply = await message.reply("Please provide a URL after the command.")
+        await asyncio.sleep(60)
+        await message.delete()
+        await bot_reply.delete()
         return
     
-    await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
+    bot_reply =await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
+    await asyncio.sleep(15)
+    await message.delete()
+    await bot_reply.delete()
     # Extract the URL argument from the command
     url = message.text.split(" ")[1]
 
@@ -302,8 +338,10 @@ async def album(_, message: Message):
         await message.reply("Please provide a URL after the command.")
         return
     
-    await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
-
+    bot_reply = await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
+    await asyncio.sleep(10)
+    await message.delete()
+    await bot_reply.delete()
     url = message.text.split(" ")[1]
     # Generate a task id without blasting anything
     task_id = str(uuid.uuid4())[:8]
@@ -316,14 +354,22 @@ async def album(_, message: Message):
 @app.on_message(filters.command("playlist"))
 async def playlist(_, message: Message):
     if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+        bot_reply = await message.reply("Unauthorized")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     if len(message.text.split(" ")) < 2:
-        await message.reply("Please provide a URL after the command.")
+        bot_reply = await message.reply("Please provide a URL after the command.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
         
-    await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
-
+    bot_reply = await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
+    await asyncio.sleep(60)
+    await message.delete()
+    await bot_reply.delete()
     url = message.text.split(" ")[1]
     
     # Generate a task id without blasting anything
@@ -337,10 +383,16 @@ async def playlist(_, message: Message):
 @app.on_message(filters.command("info"))
 async def info(_, message: Message):
     if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+        bot_reply = await message.reply("Unauthorized")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     if len(message.text.split(" ")) < 2:
-        await message.reply("Please provide a URL after the command.")
+        bot_reply = await message.reply("Please provide a URL after the command.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     url = message.text.split(" ")[1]
     
@@ -363,14 +415,22 @@ async def info(_, message: Message):
 @app.on_message(filters.command("atmos"))
 async def atmos(_, message: Message):
     if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+        bot_reply = await message.reply("Unauthorized")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     if len(message.text.split(" ")) < 2:
-        await message.reply("Please provide a URL after the command.")
+        bot_reply = await message.reply("Please provide a URL after the command.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     
-    await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
-
+    bot_reply = await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
+    await asyncio.sleep(15)
+    await message.delete()
+    await bot_reply.delete()
     url = message.text.split(" ")[1]
     # Generate a task id without blasting anything
     task_id = str(uuid.uuid4())[:8]
@@ -383,14 +443,23 @@ async def atmos(_, message: Message):
 @app.on_message(filters.command("aac"))
 async def aac(_, message: Message):
     if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+        bot_reply = await message.reply("Unauthorized")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     if len(message.text.split(" ")) < 2:
-        await message.reply("Please provide a URL after the command.")
+        bot_reply = await message.reply("Please provide a URL after the command.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     
-    await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
-
+    bot_reply = await message.reply(f"Task queued for [{message.from_user.first_name}](tg://user?id={message.from_user.id}), Please wait...")
+    await asyncio.sleep(60)
+    await message.delete()
+    await bot_reply.delete()
+    
     url = message.text.split(" ")[1]
     # Generate a task id without blasting anything
     task_id = str(uuid.uuid4())[:8]
@@ -404,14 +473,20 @@ async def aac(_, message: Message):
 async def status(_, message: Message):
     # Build a string with the status of all tasks in the queue
     if not task_status:
-        await message.reply("No tasks in the queue.")
+        bot_reply = await message.reply("No tasks in the queue.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
 
     status_message = "Current Queue Status:\n\n"
     for task_id, status in task_status.items():
         status_message += f"Task `{task_id}`: {status}\n"
     
-    await message.reply(status_message)
+    bot_reply = await message.reply(status_message)
+    await asyncio.sleep(15)
+    await message.delete()
+    await bot_reply.delete()
     
 @app.on_message(filters.command("wrapper"))
 async def wrapper_command(client, message):
@@ -440,8 +515,10 @@ async def wrapper_command(client, message):
             f.write(result.stdout)
 
         # Send the file as a message
-        await message.reply_document(output_filename, caption="wrapper_output.txt")
-
+        bot_reply = await message.reply_document(output_filename, caption="wrapper_output.txt")
+        await asyncio.sleep(30)
+        await message.delete()
+        await bot_reply.delete()
         # Clean up the file after sending
         os.remove(output_filename)
 
@@ -452,18 +529,27 @@ async def wrapper_command(client, message):
 @app.on_message(filters.command("cancel"))
 async def cancel(_, message: Message):
     if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+        bot_reply = await message.reply("Unauthorized")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     
     if len(message.text.split(" ")) < 2:
         await message.reply("Please provide a task ID after the command.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
 
     task_id = message.text.split(" ")[1]
     
     # Check if the task exists
     if task_id not in task_status:
-        await message.reply(f"No task found with ID {task_id}.")
+        bot_reply = await message.reply(f"No task found with ID {task_id}.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
 
     # If the task is processing, attempt to terminate the process
@@ -484,21 +570,33 @@ async def cancel(_, message: Message):
                     print(f"Deleted: {file_name}")
                 except Exception as e:
                     print(f"Error deleting file {file_name}: {str(e)}")
-        await message.reply(f"Task {task_id} has been cancelled.")
+        bot_reply = await message.reply(f"Task {task_id} has been cancelled.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         if not command_queue.empty():
             await process_queue()
             
     else:
-        await message.reply(f"Task {task_id} is not in a cancellable state.")
+        bot_reply = await message.reply(f"Task {task_id} is not in a cancellable state.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         
 @app.on_message(filters.command("cancelall"))
 async def cancel_all(_, message: Message):
     if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+        bot_reply = await message.reply("Unauthorized")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     
     if command_queue.qsize() == 0:
-        await message.reply("No tasks are currently being processed.")
+        bot_reply = await message.reply("No tasks are currently being processed.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
 
     # Iterate over the active processes and terminate them
@@ -509,13 +607,19 @@ async def cancel_all(_, message: Message):
     # Clear active processes dictionary
     active_processes.clear()
     
-    await message.reply("All running tasks have been cancelled.")
+    bot_reply = await message.reply("All running tasks have been cancelled.")
+    await asyncio.sleep(10)
+    await message.delete()
+    await bot_reply.delete()
     
 @app.on_message(filters.command("restart"))
 async def restart_command(client, message):
     # Check if the user is the admin
     if message.from_user.id != OWNER_ID:
-        await message.reply("You do not have permission to use this command.")
+        bot_reply = await message.reply("You do not have permission to use this command.")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         return
     
     try:
@@ -529,10 +633,16 @@ async def restart_command(client, message):
                 os.remove(file_path)
 
         # Send a success message
-        await message.reply("Restarted successfully and downloads cleared!")
+        bot_reply = await message.reply("Restarted successfully and downloads cleared!")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
 
     except Exception as e:
-        await message.reply(f"An error occurred during the restart process: {str(e)}")
+        bot_reply = await message.reply(f"An error occurred during the restart process: {str(e)}")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
         
 @app.on_message(filters.command("logs"))
 async def logs_command(client, message):
@@ -547,12 +657,18 @@ async def logs_command(client, message):
 
         # Check if there was an error running the command
         if result.stderr:
-            await message.reply(f"Error: {result.stderr}")
+            bot_reply = await message.reply(f"Error: {result.stderr}")
+            await asyncio.sleep(15)
+            await message.delete()
+            await bot_reply.delete()
             return
 
         # Check if "No entries" is in the output
         if "No entries" in result.stdout:
-            await message.reply("systemd service not running")
+            bot_reply = await message.reply("systemd service not running")
+            await asyncio.sleep(10)
+            await message.delete()
+            await bot_reply.delete()
             return
             
         # Create a file to store the journalctl output
@@ -561,13 +677,19 @@ async def logs_command(client, message):
             f.write(result.stdout)
 
         # Send the file as a message
-        await message.reply_document(output_filename, caption="alac_output.txt")
+        bot_reply = await message.reply_document(output_filename, caption="alac_output.txt")
+        await asyncio.sleep(30)
+        await message.delete()
+        await bot_reply.delete()
 
         # Clean up the file after sending
         os.remove(output_filename)
 
     except Exception as e:
-        await message.reply(f"An error occurred: {str(e)}")
+        bot_reply = await message.reply(f"An error occurred: {str(e)}")
+        await asyncio.sleep(10)
+        await message.delete()
+        await bot_reply.delete()
 
 
 
