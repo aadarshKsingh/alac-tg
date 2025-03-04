@@ -190,6 +190,19 @@ async def send_files(_, message: Message):
             if file_name.lower().endswith(('.jpg', '.png')):
                 print(f"Skipping {file_name} as it is a .jpg or .png file")
                 continue
+            
+            # Find a thumbnail image for the current audio file
+            thumbnail_path = None
+            for img_file in files:
+                img_file_path = os.path.join("downloads", img_file)
+                if os.path.isfile(img_file_path) and img_file.lower().endswith(('.jpg', '.png')):
+                    thumbnail_path = img_file_path
+                    break  # Take the first image file we find and use it
+
+            if thumbnail_path:
+                print(f"Using {thumbnail_path} as thumbnail for {file_name}")
+            else:
+                print(f"No thumbnail found for {file_name}")
 
             try:
                 # Run mediainfo on the file to get metadata
