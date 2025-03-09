@@ -323,8 +323,8 @@ async def check_access(message: Message):
     elif PRIVATE:  # Private chat
         if GROUP_IDS:  # If both group mode and private mode are enabled
             return is_authorized(user_id)  # Private use for authorized users only
-        if not GROUP_IDS and user_id != OWNER_ID:
-            await message.reply_text("Only the bot owner can use commands in private mode.")
+        if not GROUP_IDS and user_id != OWNER_ID and not is_authorized(user_id):
+            await message.reply_text("Only the bot owner and authorized users can use commands in private mode.")
             return False
         return user_id == OWNER_ID or is_authorized(user_id)
     return False
