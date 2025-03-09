@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from telegraph import Telegraph
 from pyrogram.errors import FloodWait
 import psycopg2
-
+import requests
 
 load_dotenv()
 
@@ -24,7 +24,7 @@ MAX_LIMIT = int(os.getenv("MAX_LIMIT"))
 DATABASE_URL = os.getenv('DATABASE_URL')
 PRIVATE = os.getenv('PRIVATE', 'NO').upper() == 'YES'
 GROUP_IDS = list(map(int, os.getenv('GROUP_IDS', '').split(','))) if os.getenv('GROUP_IDS') else []
-
+BOT_USERNAME = os.getenv("BOT_USERNAME")
 app = Client("alac", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 conn = psycopg2.connect(DATABASE_URL)
@@ -198,6 +198,10 @@ async def help(_, message: Message):
         "/cancelall - Cancel all task\n"
         "/status - Show current queue\n"
         "/restart - Restart services [ADMIN ONLY]\n"
+        "/auth <user_id> - Authorize user [ADMIN ONLY]\n"
+        "/unauth <user_id> - Unauthorize user [ADMIN ONLY]\n"
+        "/searchsong <query> - Search for a song on Apple Music\n"
+        "/searchalbum <query> - Search for an album on Apple Music\n"
     )
     bot_reply = await message.reply(help_text)
     await asyncio.sleep(60)
@@ -328,6 +332,95 @@ async def check_access(message: Message):
             return False
         return user_id == OWNER_ID or is_authorized(user_id)
     return False
+
+def search_song_apple_music(query):
+    url = f"https://itunes.apple.com/search?term={query}&media=music&entity=song&limit=4"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return response.json().get("results", [])
+    return []
+
+def search_album_apple_music(query):
+    url = f"https://itunes.apple.com/search?term={query}&media=music&entity=album&limit=4"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return response.json().get("results", [])
+    return []
+
+@app.on_message(filters.command("searchsong"))
+async def search(client: Client, message: Message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    
+    if chat_id < 0:  
+        if chat_id not in GROUP_IDS:
+            return
+    elif PRIVATE:
+        if not is_authorized(user_id):
+            return
+
+    if len(message.command) < 2:
+        await message.reply_text("Usage: /searchsong <query>")
+        return
+
+    query = " ".join(message.command[1:])
+    results = search_song_apple_music(query)
+
+    if not results:
+        await message.reply_text("No results found.")
+        return
+
+    response_text = f"**Top {len(results)} Apple Music results for:** `{query}`\n\n"
+
+    for idx, track in enumerate(results, start=1):
+        song_title = track['trackName']
+        artist = track['artistName']
+        song_url = track['trackViewUrl']
+
+        download_link = f"[Download Track](tg://resolve?domain={BOT_USERNAME}&text=/song%20{song_url})"
+
+        response_text += f"🎵 **{idx}. {song_title}** - {artist}\n{download_link}\n\n"
+
+    await message.reply_text(response_text, disable_web_page_preview=True)
+    
+@app.on_message(filters.command("searchalbum"))
+async def search(client: Client, message: Message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    if chat_id < 0:  
+        if chat_id not in GROUP_IDS:
+            return
+    elif PRIVATE:
+        if not is_authorized(user_id):
+            return
+
+    if len(message.command) < 2:
+        await message.reply_text("Usage: /searchalbum <query>")
+        return
+
+    query = " ".join(message.command[1:])
+    results = search_album_apple_music(query)
+
+    if not results:
+        await message.reply_text("No results found.")
+        return
+
+    response_text = f"**Top {len(results)} Apple Music results for:** `{query}`\n\n"
+
+    for idx, track in enumerate(results, start=1):
+        album_title = track.get('collectionName', 'Unknown Album')
+        artist = track.get('artistName', 'Unknown Artist')
+        album_url = track.get('collectionViewUrl', '#')
+
+        download_link = f"[Download Album](tg://resolve?domain={BOT_USERNAME}&text=/album%20{album_url})"
+
+        response_text += f"🎵 **{idx}. {album_title}** - {artist}\n{download_link}\n\n"
+
+    await message.reply_text(response_text, disable_web_page_preview=True)
+
     
 # Command to process song URL
 @app.on_message(filters.command("song"))

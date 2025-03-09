@@ -83,6 +83,7 @@ ALAC_SERVICE=""
 MAX_LIMIT=""
 PRIVATE=YES
 DATABASE_URL="" # any postgres is fine
+BOT_USERNAME=""
 ```
 
 ### 6. Edit Config File
@@ -114,6 +115,8 @@ Once all dependencies are installed and configurations are set, you can run the 
 - `/restart` - Restart services [ADMIN ONLY]
 - `/auth user_id` - Authorize User [OWNER ONLY]
 - `/unauth user_id` - Unauthorize User [OWNER ONLY]
+- `/searchsong query` - Search for songs
+- `/searchalbum query` - Search for albums
 
 ## Troubleshooting
 
