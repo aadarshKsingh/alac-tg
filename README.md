@@ -72,7 +72,7 @@ WantedBy=multi-user.target
 Create a `.env` file with the following variables:
 
 ```bash
-GROUP_ID=""
+GROUP_IDS="" # group ids separated by commas
 CHANNEL_ID=""
 BOT_TOKEN=""
 API_ID=""
@@ -81,6 +81,8 @@ OWNER_ID=""
 WRAPPER_SERVICE=""
 ALAC_SERVICE=""
 MAX_LIMIT=""
+PRIVATE=YES
+DATABASE_URL="" # any postgres is fine
 ```
 
 ### 6. Edit Config File
@@ -110,6 +112,8 @@ Once all dependencies are installed and configurations are set, you can run the 
 - `/cancelall` - Cancel all task
 - `/status` - Show current queue
 - `/restart` - Restart services [ADMIN ONLY]
+- `/auth user_id` - Authorize User [OWNER ONLY]
+- `/unauth user_id` - Unauthorize User [OWNER ONLY]
 
 ## Troubleshooting
 

@@ -7,11 +7,11 @@ from pyrogram.types import Message
 from dotenv import load_dotenv
 from telegraph import Telegraph
 from pyrogram.errors import FloodWait
+import psycopg2
+
 
 load_dotenv()
 
-
-GROUP_ID = int(os.getenv("GROUP_ID"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_ID = int(os.getenv("API_ID"))
@@ -21,7 +21,20 @@ OWNER_ID = int(os.getenv("OWNER_ID"))
 WRAPPER_SERVICE = os.getenv("WRAPPER_SERVICE")
 ALAC_SERVICE = os.getenv("ALAC_SERVICE")
 MAX_LIMIT = int(os.getenv("MAX_LIMIT"))
+DATABASE_URL = os.getenv('DATABASE_URL')
+PRIVATE = os.getenv('PRIVATE', 'NO').upper() == 'YES'
+GROUP_IDS = list(map(int, os.getenv('GROUP_IDS', '').split(','))) if os.getenv('GROUP_IDS') else []
+
 app = Client("alac", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+
+conn = psycopg2.connect(DATABASE_URL)
+cursor = conn.cursor()
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS authorized_users (
+    user_id BIGINT PRIMARY KEY
+);
+""")
+conn.commit()
 
 # Create a queue for downloads
 command_queue = asyncio.Queue(maxsize=MAX_LIMIT)
@@ -103,6 +116,12 @@ if not os.path.exists(downloads_dir):
     print(f"Directory '{downloads_dir}' created.")
 else:
     print(f"Directory '{downloads_dir}' already exists.")
+    
+
+def is_authorized(user_id):
+    cursor.execute("SELECT 1 FROM authorized_users WHERE user_id = %s", (user_id,))
+    return cursor.fetchone() is not None
+
 
 def format_text_for_telegraph(text):
     lines = text.split("\n")
@@ -150,9 +169,9 @@ def run_go_command(command):
 # Command to start the bot
 @app.on_message(filters.command("start"))
 async def start(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+    if not await check_access(message):
         return
+    
     bot_reply = await message.reply("Helloooooo Bachhooooooooo! Use /help to see available commands.")
     await asyncio.sleep(10)
     await message.delete()
@@ -161,8 +180,7 @@ async def start(_, message: Message):
 # Command to show help
 @app.on_message(filters.command("help"))
 async def help(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+    if not await check_access(message):
         return
 
     help_text = (
@@ -189,7 +207,7 @@ async def help(_, message: Message):
 
 # Function to handle sending to the channel
 async def send_files(_, message: Message):
-    if message.chat.id != GROUP_ID:
+    if message.chat.id not in GROUP_IDS and not is_authorized(message.from_user.id):
         await message.reply("Unauthorized")
         return
     
@@ -224,6 +242,7 @@ async def send_files(_, message: Message):
                 print(f"Using {thumbnail_path} as thumbnail for {file_name}")
             else:
                 print(f"No thumbnail found for {file_name}")
+                
 
             try:
                 # Run mediainfo on the file to get metadata
@@ -256,14 +275,14 @@ async def send_files(_, message: Message):
                            bitrate_info = line.split(":", 1)[1].strip()
 
                 # Create the caption with the extracted information
-                caption = f"Track Name: {complete_name}\n" \
-                          f"Artist: {performer}\n" \
-                          f"Duration: {duration}\n" \
-                          f"Bitrate: {bitrate_info}"
+                caption = f"💽 Title: {complete_name}\n" \
+                          f"👤 Artist: {performer}\n" \
+                          f"🕒 Duration: {duration}\n" \
+                          f"📊 Bitrate: {bitrate_info}" \
 
                 # Send the file with the caption
                 print(f"Attempting to send: {file_name}") 
-                await app.send_audio(int(CHANNEL_ID), file_path, caption=caption)
+                await app.send_audio(int(CHANNEL_ID), file_path,thumb=thumbnail_path if os.path.exists(thumbnail_path) else None,title=complete_name,performer=performer, caption=caption)
                 print(f"Sent: {file_name}")
 
             except Exception as e:
@@ -296,19 +315,29 @@ async def send_files(_, message: Message):
     await message.delete()
     await bot_reply.delete()
     
+async def check_access(message: Message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    if chat_id < 0:  # Group chat
+        return chat_id in GROUP_IDS  # Available for all members in the specified groups
+    elif PRIVATE:  # Private chat
+        if GROUP_IDS:  # If both group mode and private mode are enabled
+            return is_authorized(user_id)  # Private use for authorized users only
+        if not GROUP_IDS and user_id != OWNER_ID:
+            await message.reply_text("Only the bot owner can use commands in private mode.")
+            return False
+        return user_id == OWNER_ID or is_authorized(user_id)
+    return False
+    
 # Command to process song URL
 @app.on_message(filters.command("song"))
 async def song(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        bot_reply = await message.reply("Unauthorized")
-        await asyncio.sleep(10)
-        await message.delete()
-        await bot_reply.delete()
+    if not await check_access(message):
         return
     
     if len(message.text.split(" ")) < 2:
         bot_reply = await message.reply("Please provide a URL after the command.")
-        await asyncio.sleep(60)
+        await asyncio.sleep(10)
         await message.delete()
         await bot_reply.delete()
         return
@@ -331,8 +360,7 @@ async def song(_, message: Message):
 # Command to process album URL
 @app.on_message(filters.command("album"))
 async def album(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        await message.reply("Unauthorized")
+    if not await check_access(message):
         return
     if len(message.text.split(" ")) < 2:
         await message.reply("Please provide a URL after the command.")
@@ -353,12 +381,9 @@ async def album(_, message: Message):
 # Command to process playlist URL
 @app.on_message(filters.command("playlist"))
 async def playlist(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        bot_reply = await message.reply("Unauthorized")
-        await asyncio.sleep(10)
-        await message.delete()
-        await bot_reply.delete()
+    if not await check_access(message):
         return
+    
     if len(message.text.split(" ")) < 2:
         bot_reply = await message.reply("Please provide a URL after the command.")
         await asyncio.sleep(10)
@@ -382,12 +407,9 @@ async def playlist(_, message: Message):
 # Command to process info URL
 @app.on_message(filters.command("info"))
 async def info(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        bot_reply = await message.reply("Unauthorized")
-        await asyncio.sleep(10)
-        await message.delete()
-        await bot_reply.delete()
+    if not await check_access(message):
         return
+    
     if len(message.text.split(" ")) < 2:
         bot_reply = await message.reply("Please provide a URL after the command.")
         await asyncio.sleep(10)
@@ -414,12 +436,9 @@ async def info(_, message: Message):
 # Command to process atmos URL
 @app.on_message(filters.command("atmos"))
 async def atmos(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        bot_reply = await message.reply("Unauthorized")
-        await asyncio.sleep(10)
-        await message.delete()
-        await bot_reply.delete()
+    if not await check_access(message):
         return
+    
     if len(message.text.split(" ")) < 2:
         bot_reply = await message.reply("Please provide a URL after the command.")
         await asyncio.sleep(10)
@@ -442,12 +461,9 @@ async def atmos(_, message: Message):
 # Command to process AAC URL
 @app.on_message(filters.command("aac"))
 async def aac(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        bot_reply = await message.reply("Unauthorized")
-        await asyncio.sleep(10)
-        await message.delete()
-        await bot_reply.delete()
+    if not await check_access(message):
         return
+    
     if len(message.text.split(" ")) < 2:
         bot_reply = await message.reply("Please provide a URL after the command.")
         await asyncio.sleep(10)
@@ -528,11 +544,7 @@ async def wrapper_command(client, message):
 # Command to cancel a task
 @app.on_message(filters.command("cancel"))
 async def cancel(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        bot_reply = await message.reply("Unauthorized")
-        await asyncio.sleep(10)
-        await message.delete()
-        await bot_reply.delete()
+    if not await check_access(message):
         return
     
     if len(message.text.split(" ")) < 2:
@@ -585,11 +597,7 @@ async def cancel(_, message: Message):
         
 @app.on_message(filters.command("cancelall"))
 async def cancel_all(_, message: Message):
-    if message.chat.id != GROUP_ID:
-        bot_reply = await message.reply("Unauthorized")
-        await asyncio.sleep(10)
-        await message.delete()
-        await bot_reply.delete()
+    if not await check_access(message):
         return
     
     if command_queue.qsize() == 0:
@@ -691,7 +699,25 @@ async def logs_command(client, message):
         await message.delete()
         await bot_reply.delete()
 
+@app.on_message(filters.command("auth") & filters.user(OWNER_ID))
+def auth(client: Client, message: Message):
+    if len(message.command) != 2:
+        message.reply_text("Give User ID to authorize")
+        return
+    user_id = int(message.command[1])
+    cursor.execute("INSERT INTO authorized_users (user_id) VALUES (%s) ON CONFLICT DO NOTHING", (user_id,))
+    conn.commit()
+    message.reply_text(f"User {user_id} authorized.")
 
+@app.on_message(filters.command("unauth") & filters.user(OWNER_ID))
+def unauth(client: Client, message: Message):
+    if len(message.command) != 2:
+        message.reply_text("Give User ID to unauthorize")
+        return
+    user_id = int(message.command[1])
+    cursor.execute("DELETE FROM authorized_users WHERE user_id = %s", (user_id,))
+    conn.commit()
+    message.reply_text(f"User {user_id} unauthorized.")
 
 async def on_start():
     app.loop.create_task(process_queue())
