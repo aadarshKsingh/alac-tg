@@ -119,8 +119,21 @@ else:
     
 
 def is_authorized(user_id):
-    cursor.execute("SELECT 1 FROM authorized_users WHERE user_id = %s", (user_id,))
-    return cursor.fetchone() is not None
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT 1 FROM authorized_users WHERE user_id = %s", (user_id,))
+        result = cursor.fetchone()
+
+        cursor.close() 
+        conn.close()  
+
+        return result is not None
+
+    except psycopg2.Error as e:
+        print(f"Database error: {e}")
+        return False 
 
 
 def format_text_for_telegraph(text):
