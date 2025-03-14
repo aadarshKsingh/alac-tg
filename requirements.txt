@@ -5,3 +5,4 @@ tgcrypto==1.2.5
 asyncio==3.4.3
 uuid==1.30
 requests
+psycopg2
