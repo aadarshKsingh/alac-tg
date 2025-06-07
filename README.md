@@ -72,17 +72,15 @@ WantedBy=multi-user.target
 Create a `.env` file with the following variables:
 
 ```bash
-GROUP_IDS="" # group ids separated by commas
+GROUP_IDS=""
 CHANNEL_ID=""
 BOT_TOKEN=""
 API_ID=""
 API_HASH=""
 OWNER_ID=""
+MAX_LIMIT=""
 WRAPPER_SERVICE=""
 ALAC_SERVICE=""
-MAX_LIMIT=""
-PRIVATE=YES
-DATABASE_URL="" # any postgres is fine
 BOT_USERNAME=""
 ```
 
