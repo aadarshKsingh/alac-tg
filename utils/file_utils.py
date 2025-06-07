@@ -1,4 +1,4 @@
-wimport os
+import os
 import subprocess
 import asyncio
 
