@@ -1,4 +1,4 @@
-import os
+wimport os
 import subprocess
 import asyncio
 
@@ -74,7 +74,6 @@ async def send_files(app, channel_id):
                     thumb=thumbnail_path if thumbnail_path and os.path.exists(thumbnail_path) else None,
                     title=complete_name,
                     performer=performer,
-                    duration=int(duration.split(" ")[0]) if duration and duration.split(" ")[0].isdigit() else None,
                     caption=caption
                 )
 
