@@ -12,9 +12,10 @@ def clear_downloads():
             if os.path.isfile(file_path):
                 os.remove(file_path)
 
-async def send_files(app, channel_id):
+async def send_files(app, channel_id=None, group_id=None):
     files = os.listdir("downloads")
     for file_name in files:
+        file1_name = file_name  # Fix: Use consistent variable name
         file_path = os.path.join("downloads", file_name)
         if os.path.isfile(file_path):
             if file_name.lower().endswith(('.jpg', '.png')):
@@ -31,7 +32,8 @@ async def send_files(app, channel_id):
             # Use mediainfo to get metadata
             try:
                 mediainfo_output = subprocess.run(
-                    ["mediainfo", file_path],
+                    ["mediainfo", file1_name],
+                    cwd="downloads",
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True
@@ -67,15 +69,37 @@ async def send_files(app, channel_id):
                     f"📊 Bitrate: {bitrate_info}"
                 )
 
-                # Send audio with all metadata
-                await app.send_audio(
-                    int(channel_id),
-                    file_path,
-                    thumb=thumbnail_path if thumbnail_path and os.path.exists(thumbnail_path) else None,
-                    title=complete_name,
-                    performer=performer,
-                    caption=caption
-                )
+                # If both channel and group are present, upload to channel and forward to group
+                if channel_id and group_id:
+                    msg = await app.send_audio(
+                        int(channel_id),
+                        file_path,
+                        thumb=thumbnail_path if thumbnail_path and os.path.exists(thumbnail_path) else None,
+                        title=complete_name,
+                        performer=performer,
+                        caption=caption
+                    )
+                    await app.forward_messages(int(group_id), int(channel_id), msg.id)
+                elif channel_id:
+                    await app.send_audio(
+                        int(channel_id),
+                        file1_name,
+                        thumb=thumbnail_path if thumbnail_path and os.path.exists(thumbnail_path) else None,
+                        title=complete_name,
+                        performer=performer,
+                        caption=caption
+                    )
+                elif group_id:
+                    await app.send_audio(
+                        int(group_id),
+                        file_path,
+                        thumb=thumbnail_path if thumbnail_path and os.path.exists(thumbnail_path) else None,
+                        title=complete_name,
+                        performer=performer,
+                        caption=caption
+                    )
+                else:
+                    print("No channel_id or group_id provided. Skipping file send.")
 
             except Exception as e:
                 print(f"Error handling file {file_name}: {str(e)}")
@@ -88,4 +112,5 @@ async def send_files(app, channel_id):
             try:
                 os.remove(file_path)
             except Exception as e:
-                print(f"Error deleting file {file1_name}: {str(e)}")
+                print(f"Error deleting file {file_name}: {str(e)}")
+

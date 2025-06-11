@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
+GROUP_ID = int(os.getenv("GROUP_ID"))
 CHANNEL_ID = int(os.getenv("CHANNEL_ID"))
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 API_ID = int(os.getenv("API_ID"))
@@ -77,7 +78,10 @@ def update_downloader():
             f.write(content)
 
 async def on_start():
-    app.loop.create_task(process_queue(app, command_queue, task_status, active_processes, CHANNEL_ID))
+    if not CHANNEL_ID and not GROUP_ID:
+        logging.warning("Neither CHANNEL_ID nor GROUP_ID is available. Skipping queue start.")
+        return
+    app.loop.create_task(process_queue(app, command_queue, task_status, active_processes, CHANNEL_ID, GROUP_ID))
 
 if __name__ == "__main__":
     update_downloader()
