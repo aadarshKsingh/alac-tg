@@ -17,7 +17,7 @@ def setup_commands(app, command_queue, task_status, active_processes, OWNER_ID, 
     @app.on_message(filters.command("start"))
     async def start(_, message: Message):
         logging.info(f"Received /start from user {message.from_user.id}")
-        await message.reply("Helloooooo Bachhooooooooo! Use /help to see available commands.")
+        await message.reply("Hello! Use /help to see available commands.")
 
     @app.on_message(filters.command("help"))
     async def help(_, message: Message):
@@ -31,8 +31,6 @@ def setup_commands(app, command_queue, task_status, active_processes, OWNER_ID, 
             "/info <url> - Show information\n"
             "/atmos <url> - Process the atmos URL\n"
             "/aac <url> - Process the AAC URL\n"
-            "/wrapper - Return wrapper systemd service logs\n"
-            "/logs - Returns bot's systemd service logs\n"
             "/cancel - Cancel a task with id\n"
             "/cancelall - Cancel all task\n"
             "/status - Show current queue\n"
@@ -84,10 +82,17 @@ def setup_commands(app, command_queue, task_status, active_processes, OWNER_ID, 
             await message.reply("Please provide a URL after the command.")
             return
         url = message.text.split(" ")[1]
-        command = f"go run main.go --debug {url}"
         await message.reply("Fetching info, Please wait...")
         try:
-            output = subprocess.run(command, shell=True, capture_output=True, text=True).stdout
+            process = subprocess.run(
+                ["go", "run", "main.go", "--debug", url],
+                cwd="downloader",
+                capture_output=True,
+                text=True
+            )
+            output = process.stdout
+            if not output:
+                output = process.stderr
             output = format_text_for_telegraph(output)
             telegraph_url = upload_to_telegraph(output)
             await message.reply(f"Here is the information: {telegraph_url}")
@@ -128,48 +133,6 @@ def setup_commands(app, command_queue, task_status, active_processes, OWNER_ID, 
             status_message += f"Task `{task_id}`: {status}\n"
         await message.reply(status_message)
 
-    @app.on_message(filters.command("wrapper"))
-    async def wrapper_command(_, message: Message):
-        try:
-            result = subprocess.run(
-                ["journalctl", "-u", WRAPPER_SERVICE],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            if result.stderr:
-                await message.reply(f"Error: {result.stderr}")
-                return
-            if "No entries" in result.stdout:
-                await message.reply("systemd service not running")
-                return
-            output_filename = "wrapper_output.txt"
-            with open(output_filename, "w") as f:
-                f.write(result.stdout)
-            await message.reply_document(output_filename, caption="wrapper_output.txt")
-            os.remove(output_filename)
-        except Exception as e:
-            await message.reply(f"An error occurred: {str(e)}")
-
-    @app.on_message(filters.command("logs"))
-    async def logs_command(_, message: Message):
-        try:
-            result = subprocess.run(
-                ["journalctl", "-u", ALAC_SERVICE],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            if result.stderr:
-                await message.reply(f"Error: {result.stderr}")
-                return
-            if "No entries" in result.stdout:
-                await message.reply("systemd service not running")
-                return
-            output_filename = "alac_output.txt"
-            with open(output_filename, "w") as f:
-                f.write(result.stdout)
-            await message.reply_document(output_filename, caption="alac_output.txt")
-            os.remove(output_filename)
-        except Exception as e:
-            await message.reply(f"An error occurred: {str(e)}")
-
     @app.on_message(filters.command("cancel"))
     async def cancel(_, message: Message):
         if len(message.text.split(" ")) < 2:
@@ -197,16 +160,6 @@ def setup_commands(app, command_queue, task_status, active_processes, OWNER_ID, 
         active_processes.clear()
         clear_downloads()
         await message.reply("All running tasks have been cancelled.")
-
-    @app.on_message(filters.command("restart"))
-    async def restart_command(_, message: Message):
-        try:
-            subprocess.run(["systemctl", "restart", ALAC_SERVICE], check=True)
-            subprocess.run(["systemctl", "restart", WRAPPER_SERVICE], check=True)
-            clear_downloads()
-            await message.reply("Restarted successfully and downloads cleared!")
-        except Exception as e:
-            await message.reply(f"An error occurred: {str(e)}")
 
     @app.on_message(filters.command("searchsong"))
     async def searchsong(_, message: Message):

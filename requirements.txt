@@ -6,3 +6,4 @@ asyncio==3.4.3
 uuid==1.30
 requests
 psycopg2
+pyyaml

@@ -22,6 +22,6 @@ def upload_to_telegraph(text):
     response = telegraph.create_page(
         title='Info',
         html_content=f"<p>{text}</p>",
-        author_name='Alac Daddy'
+        author_name='ALAC-TG'
     )
     return f"https://telegra.ph/{response['path']}"
